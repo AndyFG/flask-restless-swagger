@@ -3,14 +3,15 @@ __email__ = 'mike@messmore.org'
 __version__ = '0.2.0'
 
 try:
-	import urlparse
+    import urlparse
 except:
-	from urllib import parse as urlparse
+    from urllib import parse as urlparse
 
 import json
 import yaml
 from flask import jsonify, request, Blueprint, redirect
 from flask_restless import APIManager
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 from flask_restless.helpers import *
 
 sqlalchemy_swagger_type = {
@@ -21,6 +22,7 @@ sqlalchemy_swagger_type = {
     'VARCHAR': 'string',
     'TEXT': 'string',
     'DATE': 'date',
+    'TIME': 'date',
     'BOOLEAN': 'bool',
     'BLOB': 'binary',
     'BYTEA': 'binary',
@@ -33,6 +35,20 @@ sqlalchemy_swagger_type = {
     'ENUM': 'string',
     'INTERVAL': 'date-time',
 }
+
+
+def get_columns(model):
+    """Returns a dictionary-like object containing all the columns of the
+    specified `model` class.
+    This includes `hybrid attributes`_.
+    .. _hybrid attributes: http://docs.sqlalchemy.org/en/latest/orm/extensions/hybrid.html
+    """
+    columns = {}
+    for superclass in model.__mro__:
+        for name, column in superclass.__dict__.items():
+            if isinstance(column, InstrumentedAttribute):
+                columns[name] = column
+    return columns
 
 
 class SwagAPIManager(object):
@@ -222,8 +238,9 @@ class SwagAPIManager(object):
         self.app = app
         self.manager = APIManager(self.app, **kwargs)
 
-        swagger = Blueprint('swagger', __name__, static_folder='static',
-                            static_url_path=self.app.static_url_path + '/swagger', )
+        swagger = Blueprint(
+            'swagger', __name__, static_folder='static', static_url_path=self.app.static_url_path + '/swagger'
+        )
 
         @swagger.route('/swagger')
         def swagger_ui():
