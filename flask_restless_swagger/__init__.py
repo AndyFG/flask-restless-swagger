@@ -1,15 +1,7 @@
-__author__ = 'Michael Messmore'
-__email__ = 'mike@messmore.org'
-__version__ = '0.2.0'
-
-try:
-    import urlparse
-except:
-    from urllib import parse as urlparse
-
 import json
 import yaml
-from flask import jsonify, request, Blueprint, redirect
+from urllib import parse as urlparse
+from flask import jsonify, request, Blueprint
 from flask_restless import APIManager
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from flask_restless.helpers import *
@@ -38,10 +30,9 @@ sqlalchemy_swagger_type = {
 
 
 def get_columns(model):
-    """Returns a dictionary-like object containing all the columns of the
-    specified `model` class.
-    This includes `hybrid attributes`_.
-    .. _hybrid attributes: http://docs.sqlalchemy.org/en/latest/orm/extensions/hybrid.html
+    """
+    Returns a dictionary-like object containing all the columns of the specified `model` class.
+    This includes `hybrid attributes`: http://docs.sqlalchemy.org/en/latest/orm/extensions/hybrid.html
     """
     columns = {}
     for superclass in model.__mro__:
@@ -134,14 +125,15 @@ class SwagAPIManager(object):
                                 'items': {'$ref': '#/definitions/' + name.lower()}
                             }
                         }
-
                     }
                 }
 
                 if model.__doc__:
                     self.swagger['paths'][path]['description'] = model.__doc__
+
                 if id_path not in self.swagger['paths']:
                     self.swagger['paths'][id_path] = {}
+
                 self.swagger['paths'][id_path][method] = {
                     'parameters': [{
                         'name': schema.lower() + 'Id',
@@ -153,19 +145,17 @@ class SwagAPIManager(object):
                     'responses': {
                         200: {
                             'description': 'Success ' + name.lower(),
-                            'schema': {
-                                'title': name.lower(),
-                                '$ref': '#/definitions/' + name.lower()
-                            }
+                            'schema': {'title': name.lower(), '$ref': '#/definitions/' + name.lower()}
                         }
-
                     }
                 }
                 if model.__doc__:
                     self.swagger['paths'][id_path]['description'] = model.__doc__
+
             elif method == 'delete':
                 if id_path not in self.swagger['paths']:
                     self.swagger['paths'][id_path] = {}
+
                 self.swagger['paths']["{0}/{{{1}Id}}".format(path, schema.lower())][method] = {
                     'parameters': [{
                         'name': schema.lower() + 'Id',
@@ -174,12 +164,7 @@ class SwagAPIManager(object):
                         'required': True,
                         'type': 'integer'
                     }],
-                    'responses': {
-                        200: {
-                            'description': 'Success'
-                        }
-
-                    }
+                    'responses': {200: {'description': 'Success'}}
                 }
                 if model.__doc__:
                     self.swagger['paths'][id_path]['description'] = model.__doc__
@@ -191,60 +176,47 @@ class SwagAPIManager(object):
                         'description': schema,
                         'type': "#/definitions/" + schema.lower()
                     }],
-                    'responses': {
-                        200: {
-                            'description': 'Success'
-                        }
-
-                    }
+                    'responses': {200: {'description': 'Success'}}
                 }
                 if model.__doc__:
                     self.swagger['paths'][path]['description'] = model.__doc__
 
     def add_defn(self, model, **kwargs):
         name = model.__name__
-        self.swagger['definitions'][name.lower()] = {
-            'type': 'object',
-            'properties': {}
-        }
+        self.swagger['definitions'][name.lower()] = {'type': 'object', 'properties': {}}
         columns = get_columns(model).keys()
+
         for column_name, column in get_columns(model).items():
             if column_name in kwargs.get('exclude_columns', []):
                 continue
             try:
+
                 column_type = str(column.type)
                 if '(' in column_type:
                     column_type = column_type.split('(')[0]
                 column_defn = sqlalchemy_swagger_type[column_type]
+
             except AttributeError:
                 schema = get_related_model(model, column_name)
+
                 if column_name + '_id' in columns:
-                    column_defn = {'schema': {
-                        '$ref': schema.__name__.lower()
-                    }}
+                    column_defn = {'schema': {'$ref': schema.__name__.lower()}}
                 else:
-                    column_defn = {'schema': {
-                        'type': 'array',
-                        'items': {
-                            '$ref': schema.__name__.lower()
-                        }
-                    }}
+                    column_defn = {'schema': {'type': 'array', 'items': {'$ref': schema.__name__.lower()}}}
 
             if column.__doc__:
                 column_defn['description'] = column.__doc__
+
             self.swagger['definitions'][name.lower()]['properties'][column_name] = column_defn
 
     def init_app(self, app, **kwargs):
         self.app = app
         self.manager = APIManager(self.app, **kwargs)
 
-        swagger = Blueprint(
-            'swagger', __name__, static_folder='static', static_url_path=self.app.static_url_path + '/swagger'
-        )
+        swagger = Blueprint('swagger', __name__, static_folder='static')
 
         @swagger.route('/api/api-docs.json')
         def swagger_json():
-            # I can only get this from a request context
             self.swagger['host'] = urlparse.urlparse(request.url_root).netloc
             return jsonify(self.swagger)
 
@@ -254,7 +226,3 @@ class SwagAPIManager(object):
         self.manager.create_api(model, **kwargs)
         self.add_defn(model, **kwargs)
         self.add_path(model, **kwargs)
-
-    def swagger_blueprint(self):
-
-        return swagger
