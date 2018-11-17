@@ -47,7 +47,7 @@ def get_columns(model):
     for superclass in model.__mro__:
         for name, column in superclass.__dict__.items():
             if isinstance(column, InstrumentedAttribute):
-                columns[name] = column
+                columns[str(name).lower()] = column
     return columns
 
 
@@ -55,10 +55,10 @@ class SwagAPIManager(object):
     swagger = {
         'swagger': '2.0',
         'info': {},
-        'schemes': ['http', 'https'],
-        'basePath': '/',
-        'consumes': ['application/json'],
-        'produces': ['application/json'],
+        'schemes': ['http'],
+        'basePath': '/api/',
+        'consumes': ['application/vnd.api+json'],
+        'produces': ['application/vnd.api+json'],
         'paths': {},
         'definitions': {}
     }
@@ -112,7 +112,7 @@ class SwagAPIManager(object):
     def add_path(self, model, **kwargs):
         name = model.__tablename__
         schema = model.__name__
-        path = kwargs.get('url_prefix', "") + '/' + name
+        path = kwargs.get('url_prefix', "") + '/' + name.lower()
         id_path = "{0}/{{{1}Id}}".format(path, schema.lower())
         self.swagger['paths'][path] = {}
 
@@ -127,11 +127,11 @@ class SwagAPIManager(object):
                     }],
                     'responses': {
                         200: {
-                            'description': 'List ' + name,
+                            'description': 'List ' + name.lower(),
                             'schema': {
-                                'title': name,
+                                'title': name.lower(),
                                 'type': 'array',
-                                'items': {'$ref': '#/definitions/' + name}
+                                'items': {'$ref': '#/definitions/' + name.lower()}
                             }
                         }
 
@@ -146,16 +146,16 @@ class SwagAPIManager(object):
                     'parameters': [{
                         'name': schema.lower() + 'Id',
                         'in': 'path',
-                        'description': 'ID of ' + schema,
+                        'description': 'ID of ' + schema.lower(),
                         'required': True,
                         'type': 'integer'
                     }],
                     'responses': {
                         200: {
-                            'description': 'Success ' + name,
+                            'description': 'Success ' + name.lower(),
                             'schema': {
-                                'title': name,
-                                '$ref': '#/definitions/' + name
+                                'title': name.lower(),
+                                '$ref': '#/definitions/' + name.lower()
                             }
                         }
 
@@ -186,10 +186,10 @@ class SwagAPIManager(object):
             else:
                 self.swagger['paths'][path][method] = {
                     'parameters': [{
-                        'name': name,
+                        'name': name.lower(),
                         'in': 'body',
                         'description': schema,
-                        'type': "#/definitions/" + schema
+                        'type': "#/definitions/" + schema.lower()
                     }],
                     'responses': {
                         200: {
@@ -203,7 +203,7 @@ class SwagAPIManager(object):
 
     def add_defn(self, model, **kwargs):
         name = model.__name__
-        self.swagger['definitions'][name] = {
+        self.swagger['definitions'][name.lower()] = {
             'type': 'object',
             'properties': {}
         }
@@ -220,19 +220,19 @@ class SwagAPIManager(object):
                 schema = get_related_model(model, column_name)
                 if column_name + '_id' in columns:
                     column_defn = {'schema': {
-                        '$ref': schema.__name__
+                        '$ref': schema.__name__.lower()
                     }}
                 else:
                     column_defn = {'schema': {
                         'type': 'array',
                         'items': {
-                            '$ref': schema.__name__
+                            '$ref': schema.__name__.lower()
                         }
                     }}
 
             if column.__doc__:
                 column_defn['description'] = column.__doc__
-            self.swagger['definitions'][name]['properties'][column_name] = column_defn
+            self.swagger['definitions'][name.lower()]['properties'][column_name] = column_defn
 
     def init_app(self, app, **kwargs):
         self.app = app
@@ -242,11 +242,7 @@ class SwagAPIManager(object):
             'swagger', __name__, static_folder='static', static_url_path=self.app.static_url_path + '/swagger'
         )
 
-        @swagger.route('/swagger')
-        def swagger_ui():
-            return redirect('/static/swagger/swagger-ui/index.html')
-
-        @swagger.route('/swagger.json')
+        @swagger.route('/api/swagger.json')
         def swagger_json():
             # I can only get this from a request context
             self.swagger['host'] = urlparse.urlparse(request.url_root).netloc
