@@ -242,7 +242,7 @@ class SwagAPIManager(object):
             'swagger', __name__, static_folder='static', static_url_path=self.app.static_url_path + '/swagger'
         )
 
-        @swagger.route('/generated/api-docs.json')
+        @swagger.route('/api/api-docs.json')
         def swagger_json():
             # I can only get this from a request context
             self.swagger['host'] = urlparse.urlparse(request.url_root).netloc
