@@ -145,7 +145,7 @@ class SwagAPIManager(object):
                     response = {200: {'description': 'Success'}}
                     if method == 'post':
                         response.get(200).update(
-                            {'schema': {'title': name, '$ref': '#/definitions/' + name.capitalize()}}
+                            dict(schema={'title': name, '$ref': '#/definitions/' + name.capitalize()})
                         )
 
                     self.swagger['paths'][path][method] = {
@@ -196,7 +196,6 @@ class SwagAPIManager(object):
             self.swagger['host'] = urlparse.urlparse(request.url_root).netloc
 
             import json
-            import os
             with open('static/api-docs.json', "w") as file:
                 json.dump(self.swagger, file, ensure_ascii=False)
             return jsonify(self.swagger)
