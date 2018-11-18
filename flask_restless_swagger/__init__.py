@@ -1,6 +1,6 @@
 from uuid import uuid4
 from urllib import parse as urlparse
-from flask import jsonify, request, Blueprint, current_app
+from flask import jsonify, request, Blueprint
 from flask_restless import APIManager
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from flask_restless.helpers import *
