@@ -1,7 +1,4 @@
-import json
 from uuid import uuid4
-
-import yaml
 from urllib import parse as urlparse
 from flask import jsonify, request, Blueprint
 from flask_restless import APIManager
