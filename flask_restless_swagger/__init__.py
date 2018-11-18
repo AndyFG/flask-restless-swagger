@@ -98,7 +98,7 @@ class SwagAPIManager(object):
 
                     self.swagger['paths'][id_path][method] = {
                         'tags': [name.capitalize()],
-                        'summary': 'List one ' + name,
+                        'summary': 'Get one ' + name,
                         'description': model_description,
                         'parameters': [{
                             'name': schema.lower() + '_id',
