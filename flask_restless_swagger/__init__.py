@@ -77,7 +77,7 @@ class SwagAPIManager(object):
                 if method == 'get':
                     self.swagger['paths'][path][method] = {
                         'tags': [name.capitalize()],
-                        'summary': 'List of %ss' % name,
+                        'summary': 'List of %s' % name,
                         'description': model_description,
                         'parameters': [
                             {'name': 'q', 'in': 'query', 'description': 'Resource params', 'type': 'string'}],
