@@ -1,6 +1,6 @@
 from uuid import uuid4
 from urllib import parse as urlparse
-from flask import jsonify, request, Blueprint
+from flask import jsonify, request, Blueprint, current_app
 from flask_restless import APIManager
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from flask_restless.helpers import *
@@ -106,7 +106,7 @@ class SwagAPIManager(object):
                             'description': 'ID of ' + schema,
                             'required': True,
                             'type': 'integer',
-                            'example': uuid4()
+                            'example': uuid4().__str__()
                         }],
                         'responses': {
                             200: {
@@ -194,6 +194,11 @@ class SwagAPIManager(object):
         @swagger.route('/api/api-docs.json')
         def swagger_json():
             self.swagger['host'] = urlparse.urlparse(request.url_root).netloc
+
+            import json
+            import os
+            with open('static/api-docs.json', "w") as file:
+                json.dump(self.swagger, file, ensure_ascii=False)
             return jsonify(self.swagger)
 
         app.register_blueprint(swagger)
